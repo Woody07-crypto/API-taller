@@ -78,13 +78,20 @@ export class PostController {
     // Implementación pendiente en Spec 3
   }
 
-  async update(_req: Request, _res: Response, _next: NextFunction): Promise<void> {
-    // Implementación pendiente en Spec 4
+  async update(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const updatedPost = postService.update(req.params.id, req.body as Record<string, unknown>);
+      res.status(200).json(updatedPost);
+    } catch (error) {
+      next(error);
+    }
   }
 
   async destroy(_req: Request, _res: Response, _next: NextFunction): Promise<void> {
     // Implementación pendiente en Spec 5
   }
 }
+
+export const ontroller = new PostController();
 
 export const postController = new PostController();
