@@ -112,7 +112,7 @@ export class PostService {
 
     const protectedField = receivedFields.find(field => protectedFields.includes(field));
     if (protectedField) {
-      throw new AppError(422, `El campo ${protectedField} no puede modificare directamente`);
+      throw new AppError(422, `El campo ${protectedField} no puede modificarse directamente`);
     }
 
     const invalidField = receivedFields.find(field => !allowedFields.includes(field));
