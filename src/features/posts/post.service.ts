@@ -1,3 +1,4 @@
+import { AppError } from '../../middlewares/errorHandler';
 import { 
   Post, 
   PostStatus, 
@@ -60,6 +61,16 @@ export class PostService {
 
       return order === 'desc' ? -comparison : comparison;
     });
+  }
+
+  getById(id: string): PostPublic {
+    const post = postRepository.findById(id);
+
+    if (!post || post.status === 'trash') {
+      throw new AppError(404, 'Post no encontrado');
+    }
+
+    return toPostPublic(post);
   }
 
   canPublish(post: Post): boolean {

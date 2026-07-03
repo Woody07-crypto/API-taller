@@ -65,8 +65,13 @@ export class PostController {
     return parsed;
   }
 
-  async show(_req: Request, _res: Response, _next: NextFunction): Promise<void> {
-    // Implementación pendiente en Spec 2
+  async show(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const post = postService.getById(req.params.id);
+      res.status(200).json(post);
+    } catch (error) {
+      next(error);
+    }
   }
 
   async store(_req: Request, _res: Response, _next: NextFunction): Promise<void> {
