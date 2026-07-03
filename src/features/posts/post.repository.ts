@@ -1,52 +1,50 @@
 import { Post } from './post.model';
 
-class PostRepository {
+/**
+ * STUB EN MEMORIA del repositorio de Posts.
+ *
+ * La slice "Modelo Post" (persistencia real / DB) aún no existe, así que este
+ * repositorio guarda los posts en un array en memoria para no bloquear la
+ * feature Store. Reemplazar por la implementación real cuando esté disponible.
+ * Los datos se pierden al reiniciar el proceso.
+ */
+export interface NewPostData {
+  title: string;
+  content: string;
+  excerpt: string;
+  slug: string;
+  status: Post['status'];
+  author_id: string;
+}
+
+class InMemoryPostRepository {
   private posts: Post[] = [];
+  private sequence = 1;
 
-  findAll(): Post[] {
-    return [...this.posts];
-  }
-
-  findById(id: string): Post | undefined {
-    return this.posts.find(post => post.id === id);
-  }
-
-  findBySlug(slug: string): Post | undefined {
-    return this.posts.find(post => post.slug === slug);
-  }
-
-  create(post: Post): Post {
+  create(data: NewPostData): Post {
+    const now = new Date();
+    const post: Post = {
+      id: String(this.sequence++),
+      title: data.title,
+      content: data.content,
+      excerpt: data.excerpt,
+      slug: data.slug,
+      status: data.status,
+      author_id: data.author_id,
+      published_at: data.status === 'publish' ? now : null,
+      deleted_at: data.status === 'trash' ? now : null,
+      created_at: now,
+      updated_at: now
+    };
     this.posts.push(post);
     return post;
   }
 
-  update(id: string, data: Partial<Post>): Post | undefined {
-    const index = this.posts.findIndex(post => post.id === id);
-    if (index === -1) return undefined;
-    
-    this.posts[index] = { ...this.posts[index], ...data };
-    return this.posts[index];
-  }
-
-  delete(id: string): boolean {
-    const index = this.posts.findIndex(post => post.id === id);
-    if (index === -1) return false;
-    
-    this.posts.splice(index, 1);
-    return true;
-  }
-
+  /** Utilidad para los tests: vacía el almacenamiento. */
   clear(): void {
     this.posts = [];
-  }
-
-  seed(posts: Post[]): void {
-    this.posts = [...posts];
-  }
-
-  count(): number {
-    return this.posts.length;
+    this.sequence = 1;
   }
 }
 
-export const postRepository = new PostRepository();
+export const postRepository = new InMemoryPostRepository();
