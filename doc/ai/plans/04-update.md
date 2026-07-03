@@ -38,7 +38,7 @@ Incluye:
 - Bloquear update directo en posts en `trash`.
 - Agregar pruebas automatizadas de la feature.
 
-Fuerae:
+Fuera de alcance:
 
 - Crear posts.
 - Listar posts.
