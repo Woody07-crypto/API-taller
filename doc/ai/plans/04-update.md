@@ -92,7 +92,7 @@ Reglas de negocio:
 
 # Implementation Plan
 
-## De de diseño
+## Decisiones de diseño
 
 La feature se implementará reutilizando la estructura existente del proyecto: rutas, controlador, servicio, repositorio, modelo y middleware de errores.
 
