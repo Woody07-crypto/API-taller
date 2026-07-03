@@ -22,6 +22,35 @@ npm test      # Ejecuta las pruebas
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | /health | Health check |
+| GET | /posts | Listar posts con paginación, filtros y ordenamiento |
+
+### GET /posts
+
+**Parámetros de query:**
+
+| Parámetro | Descripción | Default |
+|-----------|-------------|---------|
+| page | Número de página | 1 |
+| per_page | Registros por página | 10 |
+| search | Busca en title y content | — |
+| status | Filtra por estado (draft, pending, publish, private, trash) | Todos |
+| author | Filtra por author_id | Todos |
+| orderby | Campo de orden (created_at, updated_at, title) | created_at |
+| order | Dirección (asc, desc) | desc |
+
+**Respuesta:**
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "per_page": 10,
+    "total": 35,
+    "total_pages": 4
+  }
+}
+```
 
 ## Estructura
 
