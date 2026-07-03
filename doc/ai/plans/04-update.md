@@ -12,7 +12,7 @@ Esta feature permite actualizar un post por su `id` usando los endpoints `PUT /p
 - Si existe un post con el `id` enviado y el usuario actualiza varios campos válidos, la API responde `200` y devuelve el post actualizado.
 - Si no se envían todos los campos, los campos no enviados conservan su valor anterior.
 - En cada actualización exitosa, `updated_at` cambia automáticamente.
-- Si el post no existe, la API responde `rror JSON estándar.
+- Si el post no existe, la API responde `404` y devuelve un error JSON estándar.
 - Si se envía un `status` inválido, la API responde `422`.
 - Si se intenta publicar sin `title` o sin `content`, la API responde `422`.
 - Si el post pasa a `publish` por primera vez, se asigna `published_at`.
