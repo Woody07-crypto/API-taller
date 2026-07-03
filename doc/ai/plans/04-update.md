@@ -124,7 +124,7 @@ Cubrir post inexistente, status inválido, campos protegidos y publicación inv�
 
 Validar campos permitidos, status válidos y reglas para publicar.
 
-uebas para transiciones de estado
+### 7. Crear pruebas para transiciones de estado
 
 Cubrir cambio a `publish`, asignación de `published_at`, cambio a `trash` y asignación de `deleted_at`.
 
