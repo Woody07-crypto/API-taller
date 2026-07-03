@@ -22,16 +22,17 @@ describe('Ruta inexistente', () => {
     
     expect(res.status).toBe(404);
     expect(res.body).toHaveProperty('error');
-    expect(res.body.error).toBe('Recurso no encontrado');
+    expect(res.body.error.message).toBe('Recurso no encontrado');
+    expect(res.body.error.status).toBe(404);
   });
 
   it('responde 404 para cualquier método HTTP en ruta inexistente', async () => {
     const methods = ['post', 'put', 'delete', 'patch'] as const;
-    
+
     for (const method of methods) {
       const res = await request(app)[method]('/ruta-inexistente');
       expect(res.status).toBe(404);
-      expect(res.body).toHaveProperty('error');
+      expect(res.body.error.status).toBe(404);
     }
   });
 });

@@ -1,5 +1,10 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
+import { AppError } from './errorHandler';
 
-export function notFoundHandler(_req: Request, res: Response): void {
-  res.status(404).json({ error: 'Recurso no encontrado' });
+/**
+ * Ninguna ruta coincidió: delega en el middleware central para que el error
+ * salga con el formato estándar de la API (no el HTML por defecto de Express).
+ */
+export function notFoundHandler(_req: Request, _res: Response, next: NextFunction): void {
+  next(new AppError(404, 'Recurso no encontrado'));
 }

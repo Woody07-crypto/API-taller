@@ -3,13 +3,13 @@ import { postController } from './post.controller';
 
 const router = Router();
 
-router.get('/', (req, res, next) => postController.index(req, res, next));
-router.put('/:id', (req, res, next) => postController.update(req, res, next));
-router.patch('/:id', (req, res, next) => postController.update(req, res, next));
-router.get('/:id', (req, res, next) => postController.show(req, res, next));
+// POST /posts - Spec 3: Store (crear un post)
+router.post('/', (req, res, next) => postController.store(req, res, next));
 
-// Las rutas pendientes:
-// POST   /posts       - Spec 3: Store
+// Rutas restantes del CRUD (otras slices):
+// GET    /posts       - Spec 1: Index
+// GET    /posts/:id   - Spec 2: Show
+// PUT    /posts/:id   - Spec 4: Update
 // DELETE /posts/:id   - Spec 5: Delete
 
 export default router;

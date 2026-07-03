@@ -1,194 +1,72 @@
-import { AppError } from '../../middlewares/errorHandler';
-import { 
-  Post, 
-  PostStatus, 
-  PostQueryParams, 
-  PaginatedResponse, 
-  PostPublic, 
-  toPostPublic,
-  VALID_STATUSES
-} from './post.model';
+import { Post, PostStatus, VALID_STATUSES } from './post.model';
 import { postRepository } from './post.repository';
+import { AppError } from '../../middlewares/errorHandler';
+
+/** Autor por defecto hasta que exista auth (fuera de alcance de Store). */
+const DEFAULT_AUTHOR_ID = 'system';
+
+/** Genera un slug simple a partir del título. */
+export function slugify(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')  // quita acentos (marcas diacríticas)
+    .replace(/[^a-z0-9]+/g, '-')      // no-alfanumérico -> guion
+    .replace(/^-+|-+$/g, '');         // recorta guiones de los extremos
+}
+
+/** Datos crudos que llegan del body de POST /posts. */
+export interface CreatePostInput {
+  title?: unknown;
+  content?: unknown;
+  excerpt?: unknown;
+  status?: unknown;
+  author_id?: unknown;
+}
 
 export class PostService {
-  findAll(params: PostQueryParams): PaginatedResponse<PostPublic> {
-    let posts = postRepository.findAll();
+  /**
+   * Crea un post. Reglas (Store):
+   * - title y content son obligatorios.
+   * - status por defecto = 'draft'; si viene, debe ser un estado válido.
+   * - slug se genera del título.
+   * Lanza AppError(422, ..., fields) si la validación falla; el middleware
+   * central lo formatea. Nadie arma la respuesta de error aquí.
+   */
+  create(input: CreatePostInput): Post {
+    const fields: Record<string, string> = {};
 
-    if (params.status) {
-      posts = posts.filter(post => post.status === params.status);
+    const title = typeof input.title === 'string' ? input.title.trim() : '';
+    const content = typeof input.content === 'string' ? input.content.trim() : '';
+
+    if (!title) {
+      fields.title = 'title es obligatorio';
+    }
+    if (!content) {
+      fields.content = 'content es obligatorio';
     }
 
-    if (params.author) {
-      posts = posts.filter(post => post.author_id === params.author);
+    const status: PostStatus = (input.status as PostStatus) ?? 'draft';
+    if (input.status !== undefined && !VALID_STATUSES.includes(input.status as PostStatus)) {
+      fields.status = `status inválido: debe ser uno de ${VALID_STATUSES.join(', ')}`;
     }
 
-    if (params.search) {
-      const searchLower = params.search.toLowerCase();
-      posts = posts.filter(post => 
-        post.title.toLowerCase().includes(searchLower) ||
-        post.content.toLowerCase().includes(searchLower)
-      );
+    if (Object.keys(fields).length > 0) {
+      throw new AppError(422, 'Datos inválidos', fields);
     }
 
-    posts = this.sortPosts(posts, params.orderby, params.order);
+    const excerpt = typeof input.excerpt === 'string' ? input.excerpt : '';
+    const author_id = typeof input.author_id === 'string' ? input.author_id : DEFAULT_AUTHOR_ID;
 
-    const total = posts.length;
-    const total_pages = Math.ceil(total / params.per_page);
-    const start = (params.page - 1) * params.per_page;
-    const paginatedPosts = posts.slice(start, start + params.per_page);
-
-    return {
-      data: paginatedPosts.map(toPostPublic),
-      pagination: {
-        page: params.page,
-        per_page: params.per_page,
-        total,
-        total_pages
-      }
-    };
-  }
-
-  update(id: string, payload: Record<string, unknown>): PostPublic {
-    const currentPost = postRepository.findById(id);
-
-    if (!currentPost) {
-      throw new AppError(404, 'Post no encontrado');
-    }
-
-    if (!this.canUpdate(currentPost)) {
-      throw new AppError(422, 'Un post en papelera no puede actualizarse. Primero debe restaurarse.');
-    }
-
-    const updateData = this.validateUpdatePayload(payload);
-    const candidatePost: Post = {
-      ...currentPost,
-      ...updateData
-    };
-
-    if (candidatePost.status === 'publish' && !this.canPublish(candidatePost)) {
-      throw new AppError(422, 'No se puede publicar: título y contenido son obligatorios');
-    }
-
-    const now = new Date();
-
-    const postToSave: Post = {
-      ...candidatePost,
-      updated_at: now
-    };
-
-    if (
-      updateData.status === 'publish' &&
-      currentPost.status !== 'publish' &&
-      currentPost.published_at === null
-    ) {
-      postToSave.published_at = now;
-    }
-
-    if (updateData.status === 'trash' && currentPost.status !== 'trash') {
-      postToSave.deleted_at = now;
-    }
-
-    const updatedPost = postRepository.update(id, postToSave);
-
-    if (!updatedPost) {
-      throw new AppError(404, 'Post no encontrado');
-    }
-
-    return toPostPublic(updatedPost);
-  }
-
-  private validateUpdatePayload(payload: Record<string, unknown>): Partial<Post> {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      throw new AppError(422, 'El cuerpo de la petición debe ser un objeto JSON');
-    }
-
-    const allowedFields = ['title', 'content', 'excerpt', 'slug', 'status', 'author_id'];
-    const protectedFields = ['id', 'created_at', 'updated_at', 'published_at', 'deleted_at'];
-    const receivedFields = Object.keys(payload);
-
-    if (receivedFields.length === 0) {
-      throw new AppError(422, 'Debe enviar al menos un campo para actualizar');
-    }
-
-    const protectedField = receivedFields.find(field => protectedFields.includes(field));
-    if (protectedField) {
-      throw new AppError(422, `El campo ${protectedField} no puede modificarse directamente`);
-    }
-
-    const invalidField = receivedFields.find(field => !allowedFields.includes(field));
-    if (invalidField) {
-      throw new AppError(422, `El campo ${invalidField} no es válido para actualizar`);
-    }
-
-    const updateData: Partial<Post> = {};
-
-    if (payload.title !== undefined) {
-      updateData.title = this.validateStringField(payload.title, 'title');
-    }
-
-    if (payload.content !== undefined) {
-      updateData.content = this.validateStringField(payload.content, 'content');
-    }
-
-    if (payload.excerpt !== undefined) {
-      updateData.excerpt = this.validateStringField(payload.excerpt, 'excerpt');
-    }
-
-    if (payload.slug !== undefined) {
-      updateData.slug = this.validateStringField(payload.slug, 'slug');
-    }
-
-    if (payload.author_id !== undefined) {
-      updateData.author_id = this.validateStringField(payload.author_id, 'author_id');
-    }
-
-    if (payload.status !== undefined) {
-      if (typeof payload.status !== 'string') {
-        throw new AppError(422, 'El campo status debe ser texto');
-      }
-
-      if (!VALID_STATUSES.includes(payload.status as PostStatus)) {
-        throw new AppError(422, `El campo status debe ser uno de: ${VALID_STATUSES.join(', ')}`);
-      }
-
-      updateData.status = payload.status as PostStatus;
-    }
-
-    return updateData;
-  }
-
-  private validateStringField(value: unknown, fieldName: string): string {
-    if (typeof value !== 'string') {
-      throw new AppError(422, `El campo ${fieldName} debe ser texto`);
-    }
-
-    return value;
-  }
-
-  private sortPosts(posts: Post[], orderby: string, order: string): Post[] {
-    return [...posts].sort((a, b) => {
-      let comparison = 0;
-
-      if (orderby === 'title') {
-        comparison = a.title.localeCompare(b.title);
-      } else if (orderby === 'updated_at') {
-        comparison = a.updated_at.getTime() - b.updated_at.getTime();
-      } else {
-        comparison = a.created_at.getTime() - b.created_at.getTime();
-      }
-
-      return order === 'desc' ? -comparison : comparison;
+    return postRepository.create({
+      title,
+      content,
+      excerpt,
+      slug: slugify(title),
+      status,
+      author_id
     });
-  }
-
-  getById(id: string): PostPublic {
-    const post = postRepository.findById(id);
-
-    if (!post || post.status === 'trash') {
-      throw new AppError(404, 'Post no encontrado');
-    }
-
-    return toPostPublic(post);
   }
 
   canPublish(post: Post): boolean {
@@ -224,7 +102,7 @@ export class PostService {
   }
 
   isSlugUnique(slug: string, posts: Post[], excludeId?: string): boolean {
-    return !posts.some(post => post.slug ===slug && post.id !== excludeId);
+    return !posts.some(post => post.slug === slug && post.id !== excludeId);
   }
 
   validateStatusTransition(post: Post, newStatus: PostStatus): { valid: boolean; error?: string } {
@@ -236,9 +114,7 @@ export class PostService {
       return { valid: false, error: 'Un post en papelera no puede actualizarse. Primero debe restaurarse.' };
     }
 
-    const candidatePost = { ...post, status: newStatus };
-
-    if (newStatus === 'publish' && !this.canPublish(candidatePost)) {
+    if (newStatus === 'publish' && !this.canPublish(post)) {
       return { valid: false, error: 'No se puede publicar: título y contenido son obligatorios' };
     }
 
