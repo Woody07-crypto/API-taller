@@ -79,7 +79,7 @@ describe('PUT/PATCH /posts/:id', () => {
     expect(res.body.excerpt).toBe('Resumen original');
   });
 
-  it('actualiza auticamente updated_at', async () => {
+  it('actualiza automáticamente updated_at', async () => {
     const originalDate = new Date('2024-01-01T00:00:00.000Z');
     postRepository.create(createPost({ updated_at: originalDate }));
 
