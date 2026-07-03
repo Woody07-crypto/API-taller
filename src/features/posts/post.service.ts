@@ -1,3 +1,4 @@
+import { AppError } from '../../middlewares/errorHandler';
 import { 
   Post, 
   PostStatus, 
@@ -8,7 +9,6 @@ import {
   VALID_STATUSES
 } from './post.model';
 import { postRepository } from './post.repository';
-import { AppError } from '../../middlewares/errorHandler';
 
 export class PostService {
   findAll(params: PostQueryParams): PaginatedResponse<PostPublic> {
@@ -179,6 +179,16 @@ export class PostService {
 
       return order === 'desc' ? -comparison : comparison;
     });
+  }
+
+  getById(id: string): PostPublic {
+    const post = postRepository.findById(id);
+
+    if (!post || post.status === 'trash') {
+      throw new AppError(404, 'Post no encontrado');
+    }
+
+    return toPostPublic(post);
   }
 
   canPublish(post: Post): boolean {

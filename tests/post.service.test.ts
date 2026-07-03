@@ -1,4 +1,6 @@
+import { AppError } from '../src/middlewares/errorHandler';
 import { postService } from '../src/features/posts/post.service';
+import { postRepository } from '../src/features/posts/post.repository';
 import { Post } from '../src/features/posts/post.model';
 
 function createMockPost(overrides: Partial<Post> = {}): Post {
@@ -19,6 +21,70 @@ function createMockPost(overrides: Partial<Post> = {}): Post {
 }
 
 describe('PostService', () => {
+  beforeEach(() => {
+    postRepository.clear();
+  });
+
+  describe('getById', () => {
+    it('retorna un post activo con su estructura completa', () => {
+      const now = new Date('2024-06-01T10:00:00.000Z');
+      const post = createMockPost({
+        id: '123',
+        title: 'Mi post',
+        content: 'Contenido del post',
+        excerpt: 'Resumen',
+        slug: 'mi-post',
+        status: 'publish',
+        author_id: 'author-42',
+        published_at: now,
+        created_at: now,
+        updated_at: new Date('2024-06-02T12:00:00.000Z'),
+      });
+      postRepository.create(post);
+
+      const result = postService.getById('123');
+
+      expect(result).toEqual({
+        id: '123',
+        title: 'Mi post',
+        content: 'Contenido del post',
+        excerpt: 'Resumen',
+        slug: 'mi-post',
+        status: 'publish',
+        author_id: 'author-42',
+        published_at: now.toISOString(),
+        created_at: now.toISOString(),
+        updated_at: '2024-06-02T12:00:00.000Z',
+      });
+    });
+
+    it('lanza 404 cuando el ID no existe', () => {
+      expect(() => postService.getById('999')).toThrow(AppError);
+
+      try {
+        postService.getById('999');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).statusCode).toBe(404);
+        expect((error as AppError).message).toBe('Post no encontrado');
+      }
+    });
+
+    it('lanza 404 cuando el post existe pero está en trash', () => {
+      postRepository.create(createMockPost({ id: '456', status: 'trash' }));
+
+      expect(() => postService.getById('456')).toThrow(AppError);
+
+      try {
+        postService.getById('456');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).statusCode).toBe(404);
+        expect((error as AppError).message).toBe('Post no encontrado');
+      }
+    });
+  });
+
   describe('canPublish', () => {
     it('retorna true cuando title y content no están vacíos', () => {
       const post = createMockPost({ title: 'Título', content: 'Contenido' });
