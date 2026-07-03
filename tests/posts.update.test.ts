@@ -112,7 +112,7 @@ describe('PUT/PATCH /posts/:id', () => {
     expect(res.body.error).toContain('status');
   });
 
-  it('retorna 422 si se intenta publicar sn title', async () => {
+  it('retorna 422 si se intenta publicar sin title', async () => {
     postRepository.create(createPost({
       title: '',
       content: 'Contenido válido',
