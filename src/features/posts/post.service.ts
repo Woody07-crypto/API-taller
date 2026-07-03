@@ -66,7 +66,7 @@ export class PostService {
     };
 
     if (candidatePost.status === 'publish' && !this.canPublish(candidatePost)) {
-      throw new AppError(422, 'No se puede publicar: title y content son obligatorios');
+      throw new AppError(422, 'No se puede publicar: título y contenido son obligatorios');
     }
 
     const now = new Date();
